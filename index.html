@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>Cycle tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cycles">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F6F3FB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15101F" media="(prefers-color-scheme: dark)">
+<style>
+:root{--bg:#F6F3FB;--sf:#fff;--ink:#231A33;--mu:#6B6180;--ln:#E3DCF0;--m:#C93C63;--f:#3E9B7A;--o:#D69308;--l:#6A6FD8;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15101F;--sf:#1F182D;--ink:#F1ECFA;--mu:#A79BC0;--ln:#352B4A;--m:#EE6D8F;--f:#58C4A0;--o:#F0B83A;--l:#9096F2;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15101F;--sf:#1F182D;--ink:#F1ECFA;--mu:#A79BC0;--ln:#352B4A;--m:#EE6D8F;--f:#58C4A0;--o:#F0B83A;--l:#9096F2;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Figtree,system-ui,-apple-system,sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 56px}
+h1,h2,h3{font-family:'Bricolage Grotesque',Figtree,system-ui,sans-serif;margin:0;letter-spacing:-.01em;line-height:1.2}
+h1{font-size:1.7rem}h2{font-size:1.25rem;margin-bottom:12px}
+section{margin-top:28px}
+p{margin:6px 0}.mu{color:var(--mu)}.sm{font-size:.85rem}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:18px;padding:18px}
+.hero{display:grid;grid-template-columns:230px 1fr;gap:22px;align-items:center;margin-top:20px}
+.hero svg{width:100%;height:auto;display:block}
+.hero h2{font-size:1.7rem;margin-bottom:4px}
+.rd{font:700 46px 'Bricolage Grotesque',sans-serif;fill:var(--ink)}.rl{font-size:13px;fill:var(--mu)}
+.facts{display:grid;gap:8px;margin:12px 0 16px}
+.facts div{border-left:3px solid var(--ln);padding-left:10px}
+.facts b{display:block;font-size:.8rem;font-weight:500;color:var(--mu)}
+@media(max-width:560px){.hero{grid-template-columns:1fr}.hero svg{max-width:240px;margin:0 auto}}
+.btn{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 16px;background:var(--ink);color:var(--bg);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--ln)}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--l);outline-offset:2px}
+input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:8px 10px;max-width:100%}
+textarea{width:100%;min-height:96px;box-sizing:border-box;resize:vertical}
+label{display:grid;gap:4px;font-size:.85rem;color:var(--mu)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.msg{min-height:1.4em;font-size:.9rem;margin:10px 0 0}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--ln);white-space:nowrap}
+th{font-weight:500;color:var(--mu)}
+tr.past td{color:var(--mu)}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.tab{font:inherit;font-weight:600;background:var(--sf);color:var(--ink);border:1px solid var(--ln);border-radius:999px;padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:7px}
+.tab i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.tab[aria-selected=true]{border:2px solid var(--c);padding:6px 13px}
+.panel{border-top:4px solid var(--c)}
+.panel dl{display:grid;gap:12px;margin:14px 0 0}
+.panel dt{font-weight:600}.panel dd{margin:2px 0 0;color:var(--mu)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chip{border:1px solid var(--ln);border-radius:8px;padding:2px 10px;font-size:.88rem;color:var(--ink)}
+ul.h{list-style:none;margin:0;padding:0}
+ul.h li{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--ln)}
+ul.h li span:first-child{font-weight:600;min-width:110px}
+ul.h button{margin-left:auto}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Cycle tracker</h1>
+<p class="mu">Your cycle data is stored only in this browser (local storage).</p>
+</header>
+
+<section id="hero" class="card hero" aria-live="polite"></section>
+
+<section>
+<h2>Log a cycle</h2>
+<div class="card">
+<div class="row">
+<label>Period start<input type="date" id="ls"></label>
+<label>Period end (optional)<input type="date" id="le"></label>
+<button class="btn" data-a="log">Save cycle</button>
+</div>
+<p class="mu sm">Saving a start date that already exists updates its end date.</p>
+<p class="msg" id="m1" role="status"></p>
+</div>
+</section>
+
+<section>
+<h2>Predictions</h2>
+<div class="card" id="pred"></div>
+</section>
+
+<section>
+<h2>Phase guide</h2>
+<div class="tabs" id="tabs" role="tablist"></div>
+<div class="card panel" id="panel"></div>
+</section>
+
+<section>
+<h2>Import past cycles</h2>
+<div class="card">
+<p class="mu sm">One cycle per line: period start, then optionally period end. Dates as 2026-08-03 or 03/08/2026 (day first). Commas, semicolons and tabs all work, and a file with only start dates is fine.</p>
+<textarea id="ta" aria-label="Cycle data to import" placeholder="2026-06-09,2026-06-13&#10;2026-07-07,2026-07-12&#10;2026-08-04"></textarea>
+<div class="row" style="margin-top:10px">
+<label>Or choose a file (.csv, .txt)<input type="file" id="fi" accept=".csv,.txt,.tsv,text/plain,text/csv"></label>
+<button class="btn" data-a="imp">Import</button>
+</div>
+<p class="msg" id="m2" role="status"></p>
+</div>
+</section>
+
+<section>
+<h2>History</h2>
+<div class="card" id="hist"></div>
+</section>
+
+<p class="mu sm" style="margin-top:28px">Predictions are statistical estimates from your logged cycles and assume a luteal phase of about 14 days (typical range 10 to 16). Symptoms listed are typical, not guaranteed. This is not a medical device and should not be used for contraception or diagnosis.</p>
+</main>
+
+<script>
+const KEY='cycletracker.v1',D=864e5,$=s=>document.querySelector(s);
+const iso=t=>new Date(t).toISOString().slice(0,10);
+const T=s=>{const[y,m,d]=s.split('-').map(Number);return Date.UTC(y,m-1,d)};
+const now=new Date(),TODAY=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+const fmt=(t,y)=>new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:y?'numeric':undefined,timeZone:'UTC'});
+const pl=(n,w)=>n+' '+w+(n===1?'':'s');
+const PH=[
+{n:'Menstrual',v:'--m',h:'Estrogen and progesterone are at their lowest. The uterine lining sheds and prostaglandins drive cramping.',s:['Cramps','Lower back ache','Fatigue','Headache','Low mood'],b:'Basal body temperature at its baseline (lowest). Menstrual flow, no fertile mucus.',e:'Usually lowest; tends to improve as flow lightens.',t:'Rest when you can, heat for cramps, iron-rich food, gentle movement such as walking or yoga.'},
+{n:'Follicular',v:'--f',h:'FSH stimulates follicle growth and estrogen climbs steadily, rebuilding the uterine lining.',s:['Rising energy','Brighter mood','Clearer skin','Better focus','Higher pain tolerance'],b:'Temperature stays low. Cervical mucus moves from dry to sticky to creamy.',e:'Building: a good window for learning, planning and harder workouts.',t:'Strength and cardio often feel easier; a good time to start demanding projects.'},
+{n:'Ovulatory',v:'--o',h:'Estrogen peaks and triggers an LH surge; ovulation follows roughly 24 to 36 hours later. Fertility is at its highest.',s:['One-sided pelvic twinge','Higher libido','Peak energy','Breast tenderness','Mild bloating'],b:'Clear, stretchy egg-white mucus. Temperature dips slightly, then rises after ovulation. LH tests turn positive.',e:'Often the peak for social, verbal and physical energy.',t:'Good for high-intensity training and social plans; stay hydrated.'},
+{n:'Luteal',v:'--l',h:'The corpus luteum releases progesterone (with a second, smaller estrogen rise). Both fall late in the phase if there is no pregnancy, which is linked to PMS symptoms.',s:['Bloating','Breast tenderness','Cravings','Irritability','Acne','Poorer sleep','Fatigue'],b:'Basal temperature rises about 0.2 to 0.5 °C and stays up. Mucus turns thick, dry or absent.',e:'Steady early on, dipping in the last days before the period.',t:'Prioritise sleep, steady carbs and magnesium-rich food; shift to lower-intensity exercise late in the phase.'}
+];
+
+let store=true;
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY)||'{}');return{cycles:(r.cycles||[]).filter(c=>c&&/^\d{4}-\d{2}-\d{2}$/.test(c.s))}}catch(e){store=false;return{cycles:[]}}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){store=false}}
+let st=load(),sel=null,wipe=false;
+
+function model(){
+  const c=[...st.cycles].sort((a,b)=>a.s<b.s?-1:a.s>b.s?1:0),n=c.length;
+  if(!n)return null;
+  const len=[];
+  for(let i=0;i<n-1;i++){const d=(T(c[i+1].s)-T(c[i].s))/D;if(d>=18&&d<=60)len.push(d)}
+  const r=len.slice(-6),k=r.length;
+  let mean=28,sd=0;
+  if(k){
+    let w=0,s=0;r.forEach((v,i)=>{w+=i+1;s+=v*(i+1)});mean=s/w;
+    if(k>1){const a=r.reduce((x,y)=>x+y)/k;sd=Math.sqrt(r.reduce((x,y)=>x+(y-a)**2,0)/(k-1))}
+  }
+  const ps=c.filter(x=>x.e).map(x=>(T(x.e)-T(x.s))/D+1).slice(-6);
+  const P=Math.min(10,Math.max(2,ps.length?Math.round(ps.reduce((x,y)=>x+y)/ps.length):5));
+  const L=Math.round(mean),ov=Math.max(P+3,L-14);
+  const win=k>1?Math.max(1,Math.round(sd)):k===1?2:3;
+  const conf=k>=4&&sd<=2.5?'High':k>=2&&sd<=4.5?'Moderate':'Low';
+  return{c,n,k,L,P,ov,sd,win,conf,last:T(c[n-1].s)};
+}
+const phaseAt=(d,M)=>d<=M.P?0:d<M.ov-1?1:d<=M.ov+1?2:3;
+const rng=(a,b)=>a>=b?'Day '+a:'Days '+a+'–'+b;
+
+function ring(M,day){
+  const R=84,C=2*Math.PI*R,L=M.L,b=[0,M.P,M.ov-2,M.ov+1,L];
+  let s=`<svg viewBox="0 0 220 220" role="img" aria-label="Cycle day ${day} of about ${L}">`;
+  for(let i=0;i<4;i++){
+    const a=(b[i+1]-b[i])/L*C;
+    s+=`<circle cx="110" cy="110" r="${R}" fill="none" stroke="var(${PH[i].v})" stroke-width="16" stroke-dasharray="${Math.max(a-3,1)} ${C}" stroke-dashoffset="${-b[i]/L*C}" transform="rotate(-90 110 110)"/>`;
+  }
+  const ang=(Math.min(day,L)-.5)/L*2*Math.PI-Math.PI/2;
+  s+=`<circle cx="${110+R*Math.cos(ang)}" cy="${110+R*Math.sin(ang)}" r="11" fill="var(--sf)" stroke="var(--ink)" stroke-width="3"/>`;
+  s+=`<text x="110" y="112" text-anchor="middle" class="rd">${day}</text><text x="110" y="134" text-anchor="middle" class="rl">cycle day</text></svg>`;
+  return s;
+}
+
+function render(){
+  const m=model(),M=m||{L:28,P:5,ov:14,k:0,win:3,conf:'Low',n:0};
+  const day=m?Math.floor((TODAY-m.last)/D)+1:null;
+  const cur=m?phaseAt(day,M):0;
+  if(sel===null)sel=cur;
+  // hero
+  let h;
+  if(!m){
+    h='<div style="grid-column:1/-1"><h2>Welcome</h2><p class="mu">Log your most recent period start, or import past cycles below. Your current phase and predictions will appear here.</p></div>';
+  }else{
+    const next=m.last+M.L*D,diff=Math.round((next-TODAY)/D);
+    let nt=diff>0?`~${fmt(next)}, in ${pl(diff,'day')} (±${M.win})`:diff===0?'Expected today':`${pl(-diff,'day')} later than predicted`;
+    const ovd=m.last+(M.ov-1)*D;let fs=ovd-5*D,fe=ovd+D,fl='Fertile window';
+    if(TODAY>fe){fs+=M.L*D;fe+=M.L*D;fl='Next fertile window'}
+    const inF=TODAY>=fs&&TODAY<=fe&&day<=M.L;
+    const stale=day>60?`<p class="mu sm">Your last logged period was ${pl(day-1,'day')} ago. Log a newer one for accurate predictions.</p>`:'';
+    const basis=M.k?`based on ${pl(M.k,'cycle length')}`:'default 28-day estimate; log 2 or more cycles to learn your pattern';
+    const done=st.cycles.some(c=>c.s===iso(TODAY));
+    h=`<div>${ring(M,day)}</div><div><h2 style="color:var(${PH[cur].v})">${PH[cur].n} phase</h2><p class="mu">Day ${day} of about ${M.L}</p>
+    <div class="facts"><div><b>Next period</b>${nt}</div><div><b>${inF?'Fertility':fl}</b>${inF?'In your estimated fertile window':fmt(fs)+' to '+fmt(fe)}</div><div><b>Prediction confidence</b>${M.conf}, ${basis}</div></div>
+    <button class="btn" data-a="today" ${done?'disabled':''}>${done?'Period logged for today':'Period started today'}</button>${stale}</div>`;
+  }
+  $('#hero').innerHTML=h;
+  // predictions
+  let p='';
+  if(!m)p='<p class="mu">Predictions appear after you log your first cycle.</p>';
+  else{
+    p='<div class="scroll"><table><thead><tr><th>Cycle</th><th>Period starts</th><th>Ovulation</th><th>Fertile window</th></tr></thead><tbody>';
+    ['Current','Next','Following','Third'].forEach((lb,i)=>{
+      const s0=m.last+i*M.L*D,o=s0+(M.ov-1)*D;
+      p+=`<tr${o+D<TODAY?' class="past"':''}><td>${lb}</td><td>${i?'~'+fmt(s0)+' ±'+M.win+'d':fmt(s0,1)}</td><td>~${fmt(o)}</td><td>${fmt(o-5*D)} to ${fmt(o+D)}</td></tr>`;
+    });
+    p+=`</tbody></table></div><p class="mu sm">Model: recent-weighted average of your last ${M.k||'(no)'} valid cycle lengths (18 to 60 days), average cycle ${M.L} days, period ${M.P} days. Ovulation is placed 14 days before the next period; the fertile window is the 5 days before ovulation through 1 day after. Spread across your cycles: ${m.sd?'±'+m.sd.toFixed(1)+' days':'not enough data yet'}.</p>`;
+  }
+  $('#pred').innerHTML=p;
+  // phase guide
+  const rs=[rng(1,M.P),rng(M.P+1,M.ov-2),rng(M.ov-1,M.ov+1),rng(M.ov+2,M.L)];
+  $('#tabs').innerHTML=PH.map((x,i)=>`<button class="tab" role="tab" style="--c:var(${x.v})" aria-selected="${i===sel}" data-a="tab" data-i="${i}"><i></i>${x.n}</button>`).join('');
+  const x=PH[sel];
+  $('#panel').style.setProperty('--c',`var(${x.v})`);
+  $('#panel').innerHTML=`<h3>${x.n} phase</h3><p class="mu">${rs[sel]} of a ${M.L}-day cycle${m&&sel===cur?', where you are now':''}</p><p>${x.h}</p>
+  <dl><div><dt>Typical symptoms</dt><dd><span class="chips">${x.s.map(c=>`<span class="chip">${c}</span>`).join('')}</span></dd></div>
+  <div><dt>Body signs</dt><dd>${x.b}</dd></div><div><dt>Energy and focus</dt><dd>${x.e}</dd></div><div><dt>What helps</dt><dd>${x.t}</dd></div></dl>`;
+  // history
+  let l='<p class="mu">No cycles logged yet.</p>';
+  if(m){
+    l='<ul class="h">';
+    for(let i=m.n-1;i>=0;i--){
+      const c=m.c[i],cl=i<m.n-1?Math.round((T(m.c[i+1].s)-T(c.s))/D):null;
+      l+=`<li><span>${fmt(T(c.s),1)}</span><span class="mu">${c.e?'period '+pl((T(c.e)-T(c.s))/D+1,'day'):'end not logged'}</span><span class="mu">${cl?'cycle '+pl(cl,'day'):'ongoing'}</span><button class="btn ghost" data-a="del" data-s="${c.s}" aria-label="Delete cycle starting ${c.s}">Delete</button></li>`;
+    }
+    l+=`</ul><p style="margin-top:14px"><button class="btn ghost" data-a="wipe">${wipe?'Click again to delete all data':'Delete all data'}</button></p>`;
+  }
+  $('#hist').innerHTML=l;
+  if(!store)say('m1','Could not save to this browser\'s storage, so data will be lost when you close the page.',1);
+}
+const say=(id,t,bad)=>{const e=$('#'+id);e.textContent=t;e.style.color=bad?'var(--m)':'var(--mu)'};
+function add(s,e){
+  const x=st.cycles.find(c=>c.s===s);
+  if(x){if(e)x.e=e}else st.cycles.push({s,e:e||null});
+  st.cycles.sort((a,b)=>a.s<b.s?-1:a.s>b.s?1:0);
+}
+function parse(txt){
+  const out=[];let bad=0;
+  txt.split(/\r?\n/).forEach(line=>{
+    const ds=[];
+    for(const q of line.matchAll(/(\d{4})-(\d{1,2})-(\d{1,2})|(\d{1,2})[./](\d{1,2})[./](\d{4})/g)){
+      const[Y,M,d]=(q[1]?[q[1],q[2],q[3]]:[q[6],q[5],q[4]]).map(Number),t=Date.UTC(Y,M-1,d),o=new Date(t);
+      if(Y>1990&&o.getUTCMonth()===M-1&&o.getUTCDate()===d)ds.push(t);
+    }
+    if(!ds.length){if(/\d/.test(line))bad++;return}
+    let[s,e]=ds;
+    if(s>TODAY){bad++;return}
+    if(e!==undefined&&(e<s||(e-s)/D>14))e=undefined;
+    out.push({s:iso(s),e:e?iso(e):null});
+  });
+  return{out,bad};
+}
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-a]');if(!b)return;
+  const a=b.dataset.a;
+  if(a!=='wipe')wipe=false;
+  if(a==='today'){add(iso(TODAY));save();say('m1','');}
+  else if(a==='log'){
+    const s=$('#ls').value,e=$('#le').value;
+    if(!s)return say('m1','Pick a period start date.',1);
+    if(T(s)>TODAY)return say('m1','The start date cannot be in the future.',1);
+    if(e&&(T(e)<T(s)||(T(e)-T(s))/D>14))return say('m1','The end date must be 0 to 14 days after the start.',1);
+    add(s,e);save();$('#ls').value='';$('#le').value='';render();say('m1','Saved cycle starting '+fmt(T(s),1)+'.');return;
+  }
+  else if(a==='imp'){
+    const{out,bad}=parse($('#ta').value);
+    if(!out.length)return say('m2','No valid dates found. Use 2026-08-03 or 03/08/2026, one cycle per line.',1);
+    out.forEach(c=>add(c.s,c.e));save();$('#ta').value='';sel=null;render();
+    say('m2',`Imported ${pl(out.length,'cycle')}${bad?`, skipped ${pl(bad,'line')} it could not read`:''}.`);return;
+  }
+  else if(a==='del'){st.cycles=st.cycles.filter(c=>c.s!==b.dataset.s);save();sel=null}
+  else if(a==='tab'){sel=+b.dataset.i}
+  else if(a==='wipe'){if(wipe){st.cycles=[];save();wipe=false;sel=null}else wipe=true}
+  render();
+});
+$('#fi').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  f.text().then(t=>{$('#ta').value=t;say('m2','File loaded. Check it, then press Import.')}).catch(()=>say('m2','Could not read that file.',1));
+});
+render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
